@@ -1,32 +1,33 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import HTMLResponse
-import aiofiles
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 
-app = FastAPI()
+from typing import Optional, Any
+from pathlib import Path
 
+from schemas import RecipeSearchResults, Recipe, RecipeCreate
+from recipe_data import RECIPES
 
-@app.get("/heartbeat")
-async def root():
-    return {"message": "Alive"}
+# 1
+BASE_PATH = Path(__file__).resolve().parent
+TEMPLATES = Jinja2Templates(directory=str(BASE_PATH / "templates"))
 
-@app.post("/upload/")
-async def create_upload_files(file: UploadFile):
-    async with aiofiles.open(f'upload/{file.filename}', 'wb') as out_file:
-        while content := await file.read(1024):  # async read chunk
-            await out_file.write(content)  # async write chunk
+app = FastAPI(title="Recipe API", openapi_url="/openapi.json")
 
-    return {"Result": "OK"}
+api_router = APIRouter()
 
 
-@app.get("/")
-async def main():
-    content = """
-        <body>
-            </form>
-                <form action="/upload/" enctype="multipart/form-data" method="post">
-                <input name="file" type="file" multiple>
-                <input type="submit">
-            </form>
-        </body>
+# Updated to serve a Jinja2 template
+# https://www.starlette.io/templates/
+# https://jinja.palletsprojects.com/en/3.0.x/templates/#synopsis
+@api_router.get("/", status_code=200)
+def root(request: Request) -> dict:  # 2
     """
-    return HTMLResponse(content=content)
+    Root GET
+    """
+
+    # 3
+    return TEMPLATES.TemplateResponse(
+        "index.html",
+        {"request": request, "recipes": RECIPES},
+    )
+
