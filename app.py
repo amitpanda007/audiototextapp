@@ -9,6 +9,7 @@ app = FastAPI()
 async def root():
     return {"message": "Alive"}
 
+
 @app.post("/upload/")
 async def create_upload_files(file: UploadFile):
     async with aiofiles.open(f'upload/{file.filename}', 'wb') as out_file:

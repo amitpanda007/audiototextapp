@@ -1,16 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Audio to Text</title>
-
-      <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body>
-    {% for i in [1, 2, 3, 4, 5]%}
-        <h2 class="mb-4 font-semibold tracking-widest text-white uppercase tittle-font">
-            {{i}}
-        </h2>
-    {% endfor %}
+<section class="bg-black ">
+    <div class="container px-5 py-12 mx-auto lg:px-20">
+        <div class="flex flex-col flex-wrap pb-6 mb-12 text-white ">
+            <h1 class="mb-12 text-3xl font-medium text-white">
+                Transcribe - Audio/Video to Text
+            </h1>
+        </div>
+        <div
+                class="flex flex-wrap items-end justify-start w-full transition duration-500 ease-in-out transform bg-black border-2 border-gray-600 rounded-lg hover:border-white ">
+            <div class="w-full xl:w-1/4 md:w-1/4">
+                <div class="relative flex flex-col h-full p-8 ">
+                    <h2 class="mb-4 font-semibold tracking-widest text-white uppercase title-font">
+                        Upload & Transcribe
+                    </h2>
+                </div>
+            </div>
+            <div class="w-full xl:w-1/4 md:w-1/4 lg:ml-auto">
+                <div class="relative flex flex-col h-full p-8">
+                    <h1 class="flex items-end mx-auto text-3xl font-black leading-none text-white ">
+                        <span>Upload File </span>
+                    </h1>
+                    <button
+                            class="w-full px-4 py-2 mx-auto mt-3 text-white transition duration-500 ease-in-out transform border border-gray-900 rounded-lg text-md hover:bg-gray-900 focus:shadow-outline focus:outline-none focus:ring-2 ring-offset-current ring-offset-2 focus:border-gray-700 focus:bg-gray-800 ">
+                        <a href="">Submit</a>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 </body>
 </html>
