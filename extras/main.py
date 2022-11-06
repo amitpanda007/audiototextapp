@@ -26,5 +26,5 @@ def root(request: Request) -> _TemplateResponse:  # 2
     """
 
     # 3
-    return TEMPLATES.TemplateResponse("index.html", {"request": request})
+    return TEMPLATES.TemplateResponse("sample.html", {"request": request})
 
