@@ -1,0 +1,11 @@
+.hide {
+    display: none !important;
+}
+
+.show {
+    display: flex !important;;
+}
+
+.disable-click {
+    pointer-events: none;
+}
