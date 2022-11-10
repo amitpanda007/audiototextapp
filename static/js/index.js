@@ -26,7 +26,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
       preventDefaults(e);
 
       dropArea.classList.add('disable-click');
-      loadingButton.classList.add('show');
+//      loadingButton.classList.add('show');
+      loadingButton.classList.remove('hide');
 
       let dt = e.dataTransfer;
       let files = dt.files;
@@ -84,7 +85,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
             showToast("success", result.message);
             transcribeText.innerHTML = result.transcription;
             dropArea.classList.remove('disable-click');
-            loadingButton.classList.remove('show');
+//            loadingButton.classList.remove('show');
+            loadingButton.classList.add('hide');
           })
           .catch((response) => {
             response.json().then((json) => {
