@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Request, HTTPException
+import asyncio
+
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,6 +11,7 @@ from app.routers import twoforms, unsplash, accordion
 
 from fastapi import FastAPI, File, UploadFile
 import aiofiles
+CHUNK_SIZE = 4096 * 4096
 
 import whisper
 
@@ -41,7 +44,7 @@ async def show_page(request: Request, page_name: str):
 async def create_upload_files(file: UploadFile):
     try:
         async with aiofiles.open(f'upload/{file.filename}', 'wb') as out_file:
-            while content := await file.read(1024):  # async read chunk
+            while content := await file.read(CHUNK_SIZE):  # async read chunk
                 await out_file.write(content)  # async write chunk
         return JSONResponse(
             status_code=200,
@@ -54,8 +57,24 @@ async def create_upload_files(file: UploadFile):
         )
 
 
+async def transcribe_data(filename: str):
+    # Start Transcribe with Whisper
+    model = whisper.load_model('medium')
+
+    # To run only on CPU set fp16=False. eg. model.transcribe(f'./input/{filename}', fp16=False)
+    out = model.transcribe(f'./upload/{filename}', fp16=False)
+    transcribed_text = out["text"]
+    print(transcribed_text)
+    return transcribed_text
+
+
+async def transcribe_wrapper(filename: str):
+    loop = asyncio.get_event_loop()
+    loop.create_task(transcribe_data(filename))
+
+
 @app.post("/transcribe-upload/")
-async def transcribe_upload_files(file: UploadFile):
+async def transcribe_upload_files(file: UploadFile, background_tasks: BackgroundTasks):
     file_mask = ["mp3", "mp4", "mkv", "m4a", "wav", "flac"]
     filename = file.filename
     file_ext = filename.rsplit(".", 1)[1]
@@ -67,18 +86,9 @@ async def transcribe_upload_files(file: UploadFile):
                     await out_file.write(content)  # async write chunk
 
             print("File upload done. starting transcription.")
+            background_tasks.add_task(transcribe_wrapper, filename)
 
-            # Start Transcribe with Whisper
-            model = whisper.load_model('medium')
-            # To run only on CPU set fp16=False. eg. model.transcribe(f'./input/{filename}', fp16=False)
-            out = model.transcribe(f'./upload/{filename}',  fp16=False)
-            transcribed_text = out["text"]
-            print(transcribed_text)
-
-            # Write model output to storage for future usage.
-            # with open(f'./output/{name}.json', 'w', encoding='utf-8') as f:
-            #     json.dump(out, f, ensure_ascii=False, indent=4)
-
+            transcribed_text = ""
             return JSONResponse(
                 status_code=200,
                 content={"message": f"Transcription Completed.", "transcription": transcribed_text},

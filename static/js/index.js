@@ -9,8 +9,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     const dropArea = document.getElementById('dropzone');
     const transcribeText = document.getElementById('transcribe-text');
-    const loadingButton = document.getElementById('loading');
-
+    const loadingButton = document.getElementById('uploading');
+    const uploadProgress = document.getElementById("upload-progress");
+    const processingButton = document.getElementById('processing');
+    const uploadProgressSection = document.getElementById("upload-progress-sec");
 
     ['dragenter', 'dragover', 'dragleave'].forEach(eventName => {
       dropArea.addEventListener(eventName, preventDefaults, false)
@@ -24,45 +26,58 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     function handleDrop(e) {
       preventDefaults(e);
-
       dropArea.classList.add('disable-click');
-//      loadingButton.classList.add('show');
       loadingButton.classList.remove('hide');
-
+      uploadProgressSection.classList.remove('hide');
       let dt = e.dataTransfer;
       let files = dt.files;
-
       handleFiles(files)
     }
 
     function handleFiles(files) {
-//      ([...files]).forEach(uploadFile);
-      ([...files]).forEach(uploadFileWithFetch);
+      ([...files]).forEach(uploadFile);
+//      ([...files]).forEach(uploadFileWithFetch);
     }
 
-//    function uploadFile(file) {
-//      let url = '/upload';
-//      const xhr = new XMLHttpRequest();
-//      const formData = new FormData();
-//      xhr.open('POST', url, true);
-//
-//      xhr.addEventListener('readystatechange', function(e) {
-//        console.log(xhr);
-//        if (xhr.readyState == 4 && xhr.status == 200) {
-//          // Done. Inform the user
-//          showToast("success", xhr.responseText.message);
-//        }
-//        else if (xhr.readyState == 4 && xhr.status != 200) {
-//          // Error. Inform the user
-//          showToast("warning", xhr.responseText.detail);
-//        }
-//      })
-//
-//      formData.append('file', file)
-//      xhr.send(formData)
-//    }
+    function uploadFile(file) {
+      let url = '/transcribe-upload';
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      xhr.open('POST', url, true);
+      xhr.addEventListener('readystatechange', (e) => {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          let responseData = JSON.parse(xhr.responseText);
+          showToast("success", responseData.message);
+          dropArea.classList.remove('disable-click');
+          processingButton.classList.add('hide');
+          uploadProgressSection.classList.add('hide');
 
+          transcribeText.innerHTML = responseData.transcription;
+        }
+        else if (xhr.readyState == 4 && xhr.status != 200) {
+          let responseData = JSON.parse(xhr.responseText);
+          showToast("warning", responseData.message);
+        }
+      });
 
+      xhr.upload.addEventListener('progress', progressHandle);
+      formData.append('file', file)
+      xhr.send(formData)
+    }
+
+    function progressHandle(e) {
+        if (e.lengthComputable) {
+            let progress = parseInt((e.loaded / e.total) * 100);
+            console.log("upload progress:", progress);
+            uploadProgress.style.width = progress + "%";
+            uploadProgress.innerHTML = progress + "%";
+
+            if(progress == 100) {
+                loadingButton.classList.add('hide');
+                processingButton.classList.remove('hide');
+            }
+      }
+    }
 
     function uploadFileWithFetch(file) {
         const formData = new FormData();
@@ -85,8 +100,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
             showToast("success", result.message);
             transcribeText.innerHTML = result.transcription;
             dropArea.classList.remove('disable-click');
-//            loadingButton.classList.remove('show');
-            loadingButton.classList.add('hide');
+            processingButton.classList.add('hide');
+            uploadProgressSection.classList.add('hide');
           })
           .catch((response) => {
             response.json().then((json) => {
