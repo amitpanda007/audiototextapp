@@ -11,6 +11,11 @@ from app.routers import twoforms, unsplash, accordion
 
 from fastapi import FastAPI, File, UploadFile
 import aiofiles
+
+from sse_starlette.sse import EventSourceResponse
+
+from .library.util import status_event_generator
+
 CHUNK_SIZE = 4096 * 4096
 
 import whisper
@@ -104,3 +109,8 @@ async def transcribe_upload_files(file: UploadFile, background_tasks: Background
             content={"message": f"Unsupported filetype uploaded. Please upload {file_mask} files."},
         )
 
+
+@app.get('/status/stream')
+async def runStatus(param1: str,request: Request):
+    event_generator = status_event_generator(request, param1)
+    return EventSourceResponse(event_generator)

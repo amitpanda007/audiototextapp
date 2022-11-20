@@ -136,4 +136,14 @@ document.addEventListener("DOMContentLoaded", function(event) {
         }
     }
 
+    const evtSource = new EventSource("http://localhost:8000/status/stream?param1=test");
+    evtSource.addEventListener("update", function(event) {
+        // Logic to handle status updates
+        console.log(event)
+    });
+    evtSource.addEventListener("end", function(event) {
+        console.log('Handling end....')
+        evtSource.close();
+    });
+
 });
