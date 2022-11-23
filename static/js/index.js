@@ -2,26 +2,42 @@ document.addEventListener("DOMContentLoaded", function(event) {
   console.log("Local Javascript Initialized.");
 
     const uploadInput = document.querySelector("#dropzone-file");
-    console.log(uploadInput);
-    uploadInput.addEventListener('change',(e)=> {
-        console.log(e);
-    });
+
+    if(uploadInput) {
+        uploadInput.addEventListener('change',(e)=> {});
+    }
 
     const dropArea = document.getElementById('dropzone');
     const transcribeText = document.getElementById('transcribe-text');
+    const transcribeCard = document.getElementById('transcribe-card');
+    const transcribeCardText = document.getElementById('transcribe-card-text');
+    const transcribeCardBtn = document.getElementById('transcribe-card-btn');
     const loadingButton = document.getElementById('uploading');
     const uploadProgress = document.getElementById("upload-progress");
     const processingButton = document.getElementById('processing');
     const uploadProgressSection = document.getElementById("upload-progress-sec");
 
     ['dragenter', 'dragover', 'dragleave'].forEach(eventName => {
-      dropArea.addEventListener(eventName, preventDefaults, false)
+        if(dropArea) {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        }
     })
-    dropArea.addEventListener('drop', handleDrop, false);
+
+    if(dropArea){
+        dropArea.addEventListener('drop', handleDrop, false);
+    }
+
+    const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+
+    transcribeCardBtn.addEventListener('click', (e) => {
+        console.log(e);
+        transcribeCard.classList.remove('show');
+        transcribeCardText.innerHTML = "";
+    });
 
     function preventDefaults (e) {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
     }
 
     function handleDrop(e) {
@@ -31,12 +47,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
       uploadProgressSection.classList.remove('hide');
       let dt = e.dataTransfer;
       let files = dt.files;
-      handleFiles(files)
+      handleFiles(files);
     }
 
     function handleFiles(files) {
       ([...files]).forEach(uploadFile);
-//      ([...files]).forEach(uploadFileWithFetch);
     }
 
     function uploadFile(file) {
@@ -61,8 +76,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
       });
 
       xhr.upload.addEventListener('progress', progressHandle);
+      const folderName = genRanHex(16);
+      formData.append('folder', folderName)
       formData.append('file', file)
       xhr.send(formData)
+      triggerEvent(folderName);
     }
 
     function progressHandle(e) {
@@ -136,14 +154,20 @@ document.addEventListener("DOMContentLoaded", function(event) {
         }
     }
 
-    const evtSource = new EventSource("http://localhost:8000/status/stream?param1=test");
-    evtSource.addEventListener("update", function(event) {
-        // Logic to handle status updates
-        console.log(event)
-    });
-    evtSource.addEventListener("end", function(event) {
-        console.log('Handling end....')
-        evtSource.close();
-    });
+    function triggerEvent(folderName) {
+        const evtSource = new EventSource(`http://localhost:8000/transcribe/result?param=${folderName}`);
+        evtSource.addEventListener("update", function(event) {
+            // Logic to handle status updates
+            console.log(event);
+            showToast("success", "Transcription Complete");
+            transcribeText.innerHTML = event.data;
+            transcribeCard.classList.add('show');
+            transcribeCardText.innerHTML = event.data;
+        });
+        evtSource.addEventListener("end", function(event) {
+            console.log('SSE Event end.')
+            evtSource.close();
+        });
+    }
 
 });

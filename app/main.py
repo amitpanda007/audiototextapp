@@ -14,7 +14,7 @@ import aiofiles
 
 from sse_starlette.sse import EventSourceResponse
 
-from .library.util import status_event_generator
+from .library.util import status_event_generator, transcribe_status
 
 CHUNK_SIZE = 4096 * 4096
 
@@ -62,24 +62,32 @@ async def create_upload_files(file: UploadFile):
         )
 
 
-async def transcribe_data(filename: str):
+def transcribe_data(filename: str, result_folder: str):
     # Start Transcribe with Whisper
     model = whisper.load_model('medium')
 
     # To run only on CPU set fp16=False. eg. model.transcribe(f'./input/{filename}', fp16=False)
     out = model.transcribe(f'./upload/{filename}', fp16=False)
     transcribed_text = out["text"]
-    print(transcribed_text)
+    if not os.path.exists(f'upload/{result_folder}'):
+        os.makedirs(f'upload/{result_folder}')
+        name = filename.rsplit(".", 1)[0]
+        with open(f'upload/{result_folder}/{name}.txt', 'w') as out_file:
+            out_file.write(transcribed_text)
     return transcribed_text
 
 
-async def transcribe_wrapper(filename: str):
+async def transcribe_wrapper(filename: str, result_folder: str):
     loop = asyncio.get_event_loop()
-    loop.create_task(transcribe_data(filename))
+    # loop.create_task(transcribe_data(filename))
+    text = await loop.run_in_executor(None, lambda: transcribe_data(filename, result_folder))
+    print(text)
 
 
 @app.post("/transcribe-upload/")
-async def transcribe_upload_files(file: UploadFile, background_tasks: BackgroundTasks):
+async def transcribe_upload_files(request: Request, file: UploadFile, background_tasks: BackgroundTasks):
+    form = await request.form()
+    folder = form["folder"]
     file_mask = ["mp3", "mp4", "mkv", "m4a", "wav", "flac"]
     filename = file.filename
     file_ext = filename.rsplit(".", 1)[1]
@@ -91,12 +99,12 @@ async def transcribe_upload_files(file: UploadFile, background_tasks: Background
                     await out_file.write(content)  # async write chunk
 
             print("File upload done. starting transcription.")
-            background_tasks.add_task(transcribe_wrapper, filename)
+            background_tasks.add_task(transcribe_wrapper, filename, folder)
 
             transcribed_text = ""
             return JSONResponse(
                 status_code=200,
-                content={"message": f"Transcription Completed.", "transcription": transcribed_text},
+                content={"message": f"Transcription Started.", "transcription": transcribed_text},
             )
         except Exception:
             return JSONResponse(
@@ -110,7 +118,13 @@ async def transcribe_upload_files(file: UploadFile, background_tasks: Background
         )
 
 
+@app.get('/transcribe/result')
+async def get_transcribe_result(param: str, request: Request):
+    event_generator = transcribe_status(param, request)
+    return EventSourceResponse(event_generator)
+
+
 @app.get('/status/stream')
-async def runStatus(param1: str,request: Request):
+async def run_status(param1: str,request: Request):
     event_generator = status_event_generator(request, param1)
     return EventSourceResponse(event_generator)
